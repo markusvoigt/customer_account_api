@@ -14,6 +14,7 @@
  *   node customer_account_api.js token <code>        — Exchange auth code for access token
  *   node customer_account_api.js refresh <token>     — Refresh an expired access token
  *   node customer_account_api.js query <token>       — Make a sample GraphQL query
+ *   node customer_account_api.js logout <id_token>    — Log out a customer
  *
  * Docs: https://shopify.dev/docs/api/customer/latest
  */
@@ -183,6 +184,25 @@ async function queryCustomerApi(accessToken) {
   return data;
 }
 
+// ─── Step 5: Log out a customer ─────────────────────────────────────────────
+
+async function logout(idToken) {
+  const config = await discoverEndpoints();
+
+  const logoutUrl = new URL(config.end_session_endpoint);
+  logoutUrl.searchParams.set("id_token_hint", idToken);
+  logoutUrl.searchParams.set("post_logout_redirect_uri", REDIRECT_URL);
+
+  console.log("\n┌─────────────────────────────────────────────────────┐");
+  console.log("│  Step 5 — Open this URL in a browser to log out:    │");
+  console.log("└─────────────────────────────────────────────────────┘\n");
+  console.log(logoutUrl.toString());
+  console.log(
+    "\nThe customer will be logged out and redirected to:\n" +
+    `  ${REDIRECT_URL}\n`
+  );
+}
+
 // ─── CLI Router ─────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -216,6 +236,14 @@ async function main() {
       }
       await queryCustomerApi(arg);
       break;
+      
+    case "logout":
+      if (!arg) {
+        console.error("Usage: node customer_account_api.js logout <ID_TOKEN>");
+        process.exit(1);
+      }
+      await logout(arg);
+      break;
 
     default:
       console.log(`
@@ -226,6 +254,7 @@ Usage:
   node customer_account_api.js token <code>        Exchange auth code for tokens
   node customer_account_api.js refresh <token>     Refresh an expired access token
   node customer_account_api.js query <token>       Make a sample GraphQL query
+  node customer_account_api.js logout <id_token>    Log out a customer
 
 Flow:
   1. Run "authorize" and open the URL in a browser.
@@ -233,6 +262,7 @@ Flow:
   3. Run "token <code>" to get an access_token + refresh_token.
   4. Run "query <access_token>" to test the Customer Account API.
   5. When the token expires (~2 hours), run "refresh <refresh_token>".
+  6. Run "logout <id_token>" to log the customer out.
 `);
   }
 }
